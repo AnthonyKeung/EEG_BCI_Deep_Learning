@@ -109,7 +109,15 @@ def gdf_to_raw_data_input(gdf_filepaths):
     return input_formulated_data, labels
 
 if __name__ == '__main__':
-    file_path = ["BCI_IV_2b/B0101T.gdf", "BCI_IV_2b/B0102T.gdf", "BCI_IV_2b/B0103T.gdf"]
+    file_path = ["BCI_IV_2b/B0101T.gdf", "BCI_IV_2b/B0102T.gdf", "BCI_IV_2b/B0103T.gdf",
+                 "BCI_IV_2b/B0201T.gdf", "BCI_IV_2b/B0202T.gdf", "BCI_IV_2b/B0203T.gdf",
+                 "BCI_IV_2b/B0301T.gdf", "BCI_IV_2b/B0302T.gdf", "BCI_IV_2b/B0303T.gdf", 
+                 "BCI_IV_2b/B0401T.gdf", "BCI_IV_2b/B0402T.gdf", "BCI_IV_2b/B0403T.gdf",
+                 "BCI_IV_2b/B0501T.gdf", "BCI_IV_2b/B0502T.gdf", "BCI_IV_2b/B0503T.gdf",
+                 "BCI_IV_2b/B0601T.gdf", "BCI_IV_2b/B0602T.gdf", "BCI_IV_2b/B0603T.gdf",
+                 "BCI_IV_2b/B0701T.gdf", "BCI_IV_2b/B0702T.gdf", "BCI_IV_2b/B0703T.gdf",
+                 "BCI_IV_2b/B0801T.gdf", "BCI_IV_2b/B0802T.gdf", "BCI_IV_2b/B0803T.gdf",
+                 "BCI_IV_2b/B0901T.gdf", "BCI_IV_2b/B0902T.gdf", "BCI_IV_2b/B0903T.gdf"]
     input_formulated_data, labels = gdf_to_raw_data_input(file_path)
 
     # Reshape the data to have a 4D shape (samples, timepoints, channels, 1)
