@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import mne
 
 # Path to the .gdf file
-file_path = "BCI_IV_2b/B0103T.gdf"
+file_path = "BCI_IV_2b/B0104E.gdf"
 
 # Load the GDF file
 raw = mne.io.read_raw_gdf(file_path, verbose=True )
@@ -55,7 +55,8 @@ print("Event durations:", event_dur["768"])
 print("type of event_dur:", type(event_dur))
 print("size of eventpos", eventpos.shape)
 print("Bottom 60 results of eventpos:")
-print(eventpos[30:])
+print(eventpos[-30:])
+
 # print(type(eventpos))
 # first_instance_index = np.argmax(eventpos[:, 2] == 9)
 # print("First instance of 9 in the 3rd column is at index:", first_instance_index)
