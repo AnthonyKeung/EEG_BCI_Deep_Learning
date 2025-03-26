@@ -9,10 +9,15 @@ from tensorflow.keras.utils import to_categorical
 from sklearn.model_selection import train_test_split
 
 
-def raw_channel_into_frame_indexes_and_labels(raw_channel, eventpos, labels = False):
+def raw_channel_into_frame_indexes_and_labels(raw_channel, eventpos, event_dur, labels = False):
+
+    start_trial_number = event_dur["768"] # 768 is the start of the trial
+    left_hand_trial_number = event_dur["769"] # 769 is the left hand trial
+    right_hand_trial_number = event_dur["770"] # 770 is the right hand trial
+    Rejected_trial_number = event_dur["1023"] # 1023 is the rejected trial
 
     # Find the index of the first trial start event
-    start_trial_index = np.argmax(eventpos[:, 2] == 9)
+    start_trial_index = np.argmax(eventpos[:, 2] == start_trial_number)
 
     # Iterate through the event positions
     channel_frames = np.empty((0, 750))
@@ -27,25 +32,32 @@ def raw_channel_into_frame_indexes_and_labels(raw_channel, eventpos, labels = Fa
         # print("Window size is ", eventpos[current_trial+1, 0] - eventpos[current_trial , 0])
 
         # Check if the current trial is a valid trial 
-        if eventpos[current_trial , 2] == 9 and eventpos[current_trial+1, 2] != 1:
-            trial_start_index = eventpos[current_trial , 0]
-            trial_end_index = eventpos[current_trial+1, 0] if current_trial+1 < len(eventpos) else len(raw_channel)
+        if eventpos[current_trial , 2] == start_trial_number:
 
-            # Extract the trial data
-            trial_data = raw_channel[0, trial_start_index:trial_end_index]
-            channel_frames = np.vstack((channel_frames, trial_data))
+            # Check if the next trial is an ivalid trial
+            if eventpos[current_trial+1, 2] == Rejected_trial_number:
+                current_trial += 3
+                
+            else:
+                trial_start_index = eventpos[current_trial , 0]
+                trial_end_index = eventpos[current_trial+1, 0] if current_trial+1 < len(eventpos) else len(raw_channel)
 
-            # Extract the trial label
-            if labels:
-                if eventpos[current_trial+1, 2] == 10:
-                    channel_labels.append(0) # Left hand == 0
-                elif eventpos[current_trial+1, 2] == 11:
-                    channel_labels.append(1) # Right hand == 1
-                else:
-                    raise ValueError("Invalid event Type. Expected 10 or 11.")
-            current_trial += 2
+                # Extract the trial data
+                trial_data = raw_channel[0, trial_start_index:trial_end_index]
+                channel_frames = np.vstack((channel_frames, trial_data))
+
+                # Extract the trial label
+                if labels:
+                    if eventpos[current_trial+1, 2] == left_hand_trial_number:
+                        channel_labels.append(0) # Left hand == 0
+                    elif eventpos[current_trial+1, 2] == right_hand_trial_number:
+                        channel_labels.append(1) # Right hand == 1
+                    else:
+                        raise ValueError("Invalid event Type. Expected 10 or 11.")
+                current_trial += 2
         else:
-            current_trial += 3
+            current_trial += 1
+
 
     if labels:
         if len(channel_frames) != len(channel_labels):
@@ -54,38 +66,41 @@ def raw_channel_into_frame_indexes_and_labels(raw_channel, eventpos, labels = Fa
     return channel_frames,channel_labels
 
 
-
-def gdf_to_raw_data_input(gdf_filepath):
+def gdf_to_raw_data_input(gdf_filepaths):
     # Load the GDF file
     #(750, 3 ) 750 timepoints, 3 channels
-    raw = mne.io.read_raw_gdf(gdf_filepath, verbose=False)
-    eventpos, event_dur = mne.events_from_annotations(raw)
-    
-    channel_index = raw.ch_names.index('EEG:C3')  # Get the index of channel 'C3'
-    c3_data, _ = raw[channel_index]  # Extract the data and corresponding times
-    # print("C3 Data Shape:", c3_data.shape) ##C3 Data Shape: (1, 604803)
-    #print("Type of C3 Data:", type(c3_data)) ##tis a numpy array
-    # print("C3 Data:", c3_data) ## [[ 4.15045396e-06  4.44647898e-06  2.20035096e-06 ...  2.11795224e-06, 1.40993362e-06 -6.71396963e-07]]
+    c3_frames = np.empty((0, 750))
+    c4_frames = np.empty((0, 750))
+    labels = []
 
-    channel_index = raw.ch_names.index('EEG:Cz')  # Get the index of channel 'C3'
-    #cz_data, _ = raw[channel_index]  # Extract the data and corresponding times
+    for gdf_filepath in gdf_filepaths:
+        raw = mne.io.read_raw_gdf(gdf_filepath, verbose=False)
+        eventpos, event_dur = mne.events_from_annotations(raw)
+        
+        channel_index = raw.ch_names.index('EEG:C3')  # Get the index of channel 'C3'
+        c3_data, _ = raw[channel_index]  # Extract the data and corresponding times
+        #cz_data, _ = raw[channel_index]  # Extract the data and corresponding times
+        c4_data, _ = raw[channel_index]  # Extract the data and corresponding times
 
-    channel_index = raw.ch_names.index('EEG:C4')  # Get the index of channel 'C3'
-    c4_data, _ = raw[channel_index]  # Extract the data and corresponding times
 
-    c3_frames, labels = raw_channel_into_frame_indexes_and_labels(c3_data, eventpos, labels = True)
-    #cz_frames, _ = raw_channel_into_frame_indexes_and_labels(cz_data, eventpos)
-    c4_frames, _ = raw_channel_into_frame_indexes_and_labels(c4_data, eventpos)
+        c3_frames_new, labels_new = raw_channel_into_frame_indexes_and_labels(c3_data, eventpos, event_dur, labels=True)
+        c4_frames_new, _ = raw_channel_into_frame_indexes_and_labels(c4_data, eventpos, event_dur)
 
-    # Normalize the frames to have zero mean and unit variance
-    c3_frames = (c3_frames - np.mean(c3_frames, axis=1, keepdims=True)) / np.std(c3_frames, axis=1, keepdims=True)
-    #cz_frames = (cz_frames - np.mean(cz_frames, axis=1, keepdims=True)) / np.std(cz_frames, axis=1, keepdims=True)
-    c4_frames = (c4_frames - np.mean(c4_frames, axis=1, keepdims=True)) / np.std(c4_frames, axis=1, keepdims=True)
+        c3_frames = np.vstack((c3_frames, c3_frames_new))
+        c4_frames = np.vstack((c4_frames, c4_frames_new))
+        print("Number of frames ",len(labels_new))
+        labels.extend(labels_new)
 
-    # Ensure all channels have the same length
-    if not (len(c3_frames) == len(c4_frames)):
-        raise ValueError("Channel data lengths are not equal. Ensure all channels have the same length.")
-    
+
+        # Normalize the frames to have zero mean and unit variance
+        c3_frames = (c3_frames - np.mean(c3_frames, axis=1, keepdims=True)) / np.std(c3_frames, axis=1, keepdims=True)
+        #cz_frames = (cz_frames - np.mean(cz_frames, axis=1, keepdims=True)) / np.std(cz_frames, axis=1, keepdims=True)
+        c4_frames = (c4_frames - np.mean(c4_frames, axis=1, keepdims=True)) / np.std(c4_frames, axis=1, keepdims=True)
+
+        # Ensure all channels have the same length
+        if not (len(c3_frames) == len(c4_frames)):
+            raise ValueError("Channel data lengths are not equal. Ensure all channels have the same length.")
+        
     # Stack the channels into a 2D array (timepoints, channels)
     input_formulated_data = np.stack((c3_frames, c4_frames), axis=-1)
 
@@ -94,7 +109,7 @@ def gdf_to_raw_data_input(gdf_filepath):
     return input_formulated_data, labels
 
 if __name__ == '__main__':
-    file_path = "BCI_IV_2b/B0101T.gdf"
+    file_path = ["BCI_IV_2b/B0101T.gdf", "BCI_IV_2b/B0102T.gdf", "BCI_IV_2b/B0103T.gdf"]
     input_formulated_data, labels = gdf_to_raw_data_input(file_path)
 
     # Reshape the data to have a 4D shape (samples, timepoints, channels, 1)
