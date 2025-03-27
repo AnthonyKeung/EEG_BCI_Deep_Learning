@@ -70,7 +70,9 @@ class MI_EEG_Processor:
                     # Extract the trial data
                     trial_data = raw_channel[0, trial_start_index:trial_end_index]
                     channel_frames = np.vstack((channel_frames, trial_data))
-                    channel_labels.append(eventpos[current_trial+1, 2])
+
+                    
+                    channel_labels.append(int(list(event_dur.keys())[list(event_dur.values()).index(eventpos[current_trial+1, 2])]))
                     current_trial += 2
                     
             else:
