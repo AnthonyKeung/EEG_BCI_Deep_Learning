@@ -4,7 +4,7 @@ import mne
 
 class MI_EEG_Processor:
     """
-    This class is responsible for processing the EEG data from the MI EEG dataset into frames and labels.
+    This class is responsible for processing the BCI competition data into frames and labels.
     """
     def __init__(self, gdf_filepaths):
         self.gdf_filepaths = gdf_filepaths
@@ -67,45 +67,43 @@ class MI_EEG_Processor:
         return channel_frames,channel_labels
     
     def gdf_to_raw_data_input(self):
-        # Load the GDF file
-        #(750, 3 ) 750 timepoints, 3 channels
-        c3_frames = np.empty((0, 750))
-        c4_frames = np.empty((0, 750))
-        labels = []
 
+        #first create an empty dictionary with the key being the channel name and the value being the frames
+        raw = mne.io.read_raw_gdf(self.gdf_filepaths[0], verbose=False)
+        proccessed_data = {channel_name: np.empty((0, 750)) for channel_name in raw.ch_names}
+        labels = []
+        
         for gdf_filepath in self.gdf_filepaths:
             raw = mne.io.read_raw_gdf(gdf_filepath, verbose=False)
             eventpos, event_dur = mne.events_from_annotations(raw)
-            
-            channel_index = raw.ch_names.index('EEG:C3')  # Get the index of channel 'C3'
-            c3_data, _ = raw[channel_index]  # Extract the data and corresponding times
-            #cz_data, _ = raw[channel_index]  # Extract the data and corresponding times
-            c4_data, _ = raw[channel_index]  # Extract the data and corresponding times
+            do_I_need_label = True
+            print("Channel_names" ,raw.ch_names)
+
+            for channel_name in raw.ch_names:
+                channel_index = raw.ch_names.index(channel_name)  # Get the index of channel 'C3'
+                channel_data, _ = raw[channel_index]  # Extract the data and corresponding times
+
+                frames_new, labels_new = self.__raw_channel_into_frame_indexes_and_labels(channel_data, eventpos, event_dur, labels=do_I_need_label)
+
+                proccessed_data[channel_name]= np.vstack((proccessed_data[channel_name], frames_new))
+                labels.extend(labels_new)
 
 
-            c3_frames_new, labels_new = self.__raw_channel_into_frame_indexes_and_labels(c3_data, eventpos, event_dur, labels=True)
-            c4_frames_new, _ = self.__raw_channel_into_frame_indexes_and_labels(c4_data, eventpos, event_dur)
+                # Normalize the frames to have zero mean and unit variance
+                proccessed_data[channel_name] = (proccessed_data[channel_name] - np.mean(proccessed_data[channel_name], axis=1, keepdims=True)) / np.std(proccessed_data[channel_name], axis=1, keepdims=True)
+                do_I_need_label = False
+        print("label length is ", len(labels))
+        print("Shape of input_formulated_data:", proccessed_data['EEG:Cz'].shape)
+        return proccessed_data, labels
+            #     # Ensure all channels have the same length
+            #     if not (len(c3_frames) == len(c4_frames)):
+            #         raise ValueError("Channel data lengths are not equal. Ensure all channels have the same length.")
+                
+            # # Stack the channels into a 2D array (timepoints, channels)
+            # input_formulated_data = np.stack((c3_frames, c4_frames), axis=-1)
 
-            c3_frames = np.vstack((c3_frames, c3_frames_new))
-            c4_frames = np.vstack((c4_frames, c4_frames_new))
-            print("Number of frames ",len(labels_new))
-            labels.extend(labels_new)
+            # # Reshape the data to have a 4D shape (samples, timepoints, channels, 1)
+            # input_formulated_data = input_formulated_data[..., np.newaxis]
+            # print("Shape of input_formulated_data:", input_formulated_data.shape)   
 
-
-            # Normalize the frames to have zero mean and unit variance
-            c3_frames = (c3_frames - np.mean(c3_frames, axis=1, keepdims=True)) / np.std(c3_frames, axis=1, keepdims=True)
-            #cz_frames = (cz_frames - np.mean(cz_frames, axis=1, keepdims=True)) / np.std(cz_frames, axis=1, keepdims=True)
-            c4_frames = (c4_frames - np.mean(c4_frames, axis=1, keepdims=True)) / np.std(c4_frames, axis=1, keepdims=True)
-
-            # Ensure all channels have the same length
-            if not (len(c3_frames) == len(c4_frames)):
-                raise ValueError("Channel data lengths are not equal. Ensure all channels have the same length.")
-            
-        # Stack the channels into a 2D array (timepoints, channels)
-        input_formulated_data = np.stack((c3_frames, c4_frames), axis=-1)
-
-        # Reshape the data to have a 4D shape (samples, timepoints, channels, 1)
-        input_formulated_data = input_formulated_data[..., np.newaxis]
-        print("Shape of input_formulated_data:", input_formulated_data.shape)   
-
-        return input_formulated_data, labels
+            # return input_formulated_data, labels

@@ -9,6 +9,7 @@ from sklearn.metrics import confusion_matrix
 
 if __name__ == '__main__':
     file_paths = ["BCI_IV_2b/B0101T.gdf", "BCI_IV_2b/B0102T.gdf", "BCI_IV_2b/B0103T.gdf"]
+
     MI_EEG_Data = MI_EEG_Processor(file_paths)
     input_formulated_data, labels = MI_EEG_Data.gdf_to_raw_data_input()
 
@@ -42,12 +43,12 @@ if __name__ == '__main__':
 
     # Print the model summary to see the size after each layer
     model.summary()
+
     # Compile the model
     model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
     # Train the model
-    history = model.fit(X_train, y_train, epochs=10, batch_size=32, validation_data=(X_test, y_test))
-
+    history = model.fit(X_train, y_train, epochs=20, batch_size=32, validation_data=(X_test, y_test))
 
     # Evaluate the model
     test_loss, test_accuracy = model.evaluate(X_test, y_test)
