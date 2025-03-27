@@ -10,7 +10,6 @@ from sklearn.model_selection import train_test_split
 
 if __name__ == '__main__':
     file_paths = ["BCI_IV_2b/B0101T.gdf", "BCI_IV_2b/B0102T.gdf", "BCI_IV_2b/B0103T.gdf"]
-
-
-    MI_EEG_Data = MI_EEG_Processor(file_paths)
+    window_size = 750
+    MI_EEG_Data = MI_EEG_Processor(file_paths, window_size)
     input_formulated_data, labels = MI_EEG_Data.gdf_to_raw_data_input()
