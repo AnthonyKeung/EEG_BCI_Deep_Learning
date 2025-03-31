@@ -56,6 +56,18 @@ if __name__ == '__main__':
         Dense(800, activation='relu'),
         Dense(num_of_classes, activation='softmax')
         ])
+    
+    # # Define the CNN model
+    # model = Sequential([
+    #     Conv2D(16, (11,1), activation='relu', input_shape=(750, 3, 1), strides=1, padding='valid'),
+    #     #MaxPooling2D((1, 2)),
+    #     Dropout(0.30),
+    #     Conv2D(32, (11,1), activation='relu', strides=1, padding='valid'),
+    #     MaxPooling2D((1, 2)),
+    #     Flatten(),
+    #     Dense(100, activation='relu'),
+    #     Dense(num_of_classes, activation='softmax')
+    #     ])
 
     # Print the model summary to see the size after each layer
     model.summary()

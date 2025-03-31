@@ -17,11 +17,13 @@ class MI_EEG_Processor:
         raw = mne.io.read_raw_gdf(self.gdf_filepaths[0], verbose=False)
         proccessed_data = {channel_name: np.empty((0, self.window_size)) for channel_name in raw.ch_names}
         labels = []
+
         
         for gdf_filepath in self.gdf_filepaths:
             raw = mne.io.read_raw_gdf(gdf_filepath, verbose=False)
             eventpos, event_dur = mne.events_from_annotations(raw)
             print("Channel_names" ,raw.ch_names)
+            # print("Event positions", eventpos)
 
             # Get the labels for a single filepath it's an extra loop but only once 
             channel_data, _ = raw[raw.ch_names[0]] ###this may cause issues if the channel name does not exist
