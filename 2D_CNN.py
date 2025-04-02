@@ -9,7 +9,7 @@ from sklearn.metrics import confusion_matrix
 
 if __name__ == '__main__':
     
-    file_paths = ["BCI_IV_2b/B0701T.gdf", "BCI_IV_2b/B0702T.gdf", "BCI_IV_2b/B0703T.gdf"]
+    file_paths = ["BCI_IV_2b/B0101T.gdf", "BCI_IV_2b/B0102T.gdf", "BCI_IV_2b/B0103T.gdf"]
     window_size = 750
     num_of_classes = 2
 

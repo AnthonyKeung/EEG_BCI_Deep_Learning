@@ -93,11 +93,14 @@ class MI_EEG_Processor:
                     current_trial += 3
                     
                 else:
-                    trial_start_index = eventpos[current_trial , 0]
-                    trial_end_index = eventpos[current_trial+1, 0] if current_trial+1 < len(eventpos) else len(raw_channel)
+                    trial_label_index = eventpos[current_trial+1, 0] if current_trial+1 < len(eventpos) else len(raw_channel)
+                    next_trial_start_index = eventpos[current_trial+2, 0] if current_trial+2 < len(eventpos) else len(raw_channel)
+
+                    print("Trial label index is ", trial_label_index)
+                    print("Next trial start index is ", next_trial_start_index)
 
                     # Extract the trial data
-                    trial_data = raw_channel[0, trial_start_index:trial_end_index]
+                    trial_data = raw_channel[0, trial_label_index:next_trial_start_index]
                     channel_frames = np.vstack((channel_frames, trial_data))
 
                     channel_label = int(list(event_dur.keys())[list(event_dur.values()).index(eventpos[current_trial+1, 2])])
