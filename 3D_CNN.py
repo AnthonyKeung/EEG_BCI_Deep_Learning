@@ -12,13 +12,15 @@ if __name__ == '__main__':
     file_paths = ["BCI_IV_2a\A01T.gdf"]
     window_size = 500
     MI_EEG_Data = MI_EEG_Processor(file_paths, window_size)
-    input_formulated_data, labels = MI_EEG_Data.gdf_to_raw_data_input()
+    raw_data, labels = MI_EEG_Data.gdf_to_raw_data_input()
 
-    input_matrix = np.zeros((6, 7, 0)) 
-    single_frame = np.zeros((6, 7, window_size))
-    for frame in range(len(input_formulated_data['EEG-Fz'])):
-
-        
+    # # Normalise the frames to have zero mean and unit variance
+    # for channel_name in raw_data.keys():
+    #     raw_data[channel_name] = (raw_data[channel_name] - np.mean(raw_data[channel_name], axis=1, keepdims=True)) / np.std(raw_data[channel_name], axis=1, keepdims=True)
     
-    print("Shape of input_matrix:", input_matrix.shape)
 
+# create a 0 array of length 1,1,500
+    padded_zero = np.zeros( (273, 1, window_size))
+    print(padded_zero.shape)
+    print(raw_data["EEG-Fz"].shape)
+    input_formulated_data = np.stack((padded_zero, padded_zero, padded_zero,raw_data["EEG-Fz"], padded_zero, padded_zero, padded_zero), axis=-1)
