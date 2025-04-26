@@ -38,7 +38,7 @@ class MI_EEG_Processor:
             events_extracted_full.extend(event_pos_extracted)
             LH_total_count += LH_labels
             RH_total_count += RH_labels
-            print(raw.ch_names)
+            # print(raw.ch_names)
 
             for channel_name in raw.ch_names:
                 channel_index = raw.ch_names.index(channel_name)  
@@ -66,7 +66,7 @@ class MI_EEG_Processor:
 
 
     def __raw_channel_into_frame_indexes_and_labels(self, raw_channel, eventpos, event_dur):
-        print(eventpos[0:30])
+        # print(eventpos[0:30])
 
         start_trial_number = event_dur["768"] # 768 is the start of the trial
         Rejected_trial_number = event_dur["1023"] # 1023 is the rejected trial
@@ -99,8 +99,8 @@ class MI_EEG_Processor:
                     trial_start_index = eventpos[current_trial , 0]
                     trial_end_index = eventpos[current_trial+1, 0] if current_trial+1 < len(eventpos) else len(raw_channel)
 
-                    print("Trial start index is ", trial_start_index)
-                    print("Trial end index is ", trial_end_index)
+                    # print("Trial start index is ", trial_start_index)
+                    # print("Trial end index is ", trial_end_index)
 
                     # Extract the trial data
                     trial_data = raw_channel[0, trial_start_index:trial_end_index]
@@ -137,8 +137,8 @@ class MI_EEG_Processor:
         return channel_frames,channel_labels, LH_labels, RH_labels, event_pos_extracted
     
 if __name__ == "__main__":
-    gdf_filepaths = ["BCI_IV_2b\B0101T.gdf"]
-    window_size = 750  
+    gdf_filepaths = ["BCI_IV_2a\A01T.gdf"]
+    window_size = 500  
     processor = MI_EEG_Processor(gdf_filepaths, window_size)
     processed_data, labels = processor.gdf_to_raw_data_input()
     
