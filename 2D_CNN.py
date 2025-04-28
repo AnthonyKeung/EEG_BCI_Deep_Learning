@@ -25,6 +25,7 @@ if __name__ == '__main__':
 
     # Stack the channels into a 2D array (timepoints, channels)
     input_formulated_data = np.stack((processed_dictionary_data["EEG:C3"], processed_dictionary_data["EEG:C4"]), axis=-1)
+    
 
     # Reshape the data to have a 4D shape (samples, timepoints, channels, 1)
     input_formulated_data = input_formulated_data[..., np.newaxis]
