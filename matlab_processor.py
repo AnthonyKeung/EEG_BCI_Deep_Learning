@@ -4,6 +4,10 @@ from scipy.signal import butter
 import scipy.signal as signal
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
+import os
+
+from scipy.ndimage import shift, zoom
+import random
 
 #matlab preprocesser 
 #Some filtering to remove noise from the data
@@ -19,8 +23,13 @@ def butter_bandpass(lowcut, highcut, fs, order=5):
     b, a = butter(order, [low, high], btype='bandpass')
     return b, a
 
+def shifting(data, shift_range=(-5, 5)):
+    """Shifts the data along the time axis."""
+    shift_val = np.random.randint(shift_range[0], shift_range[1])
+    return shift(data, shift=(0, shift_val), mode='nearest') # Assuming last dimension is time
 
-def matlab_to_DL_input(mat_files, window_size, number_of_channels, sampling_freq, artifact_removal = False, filter = False):
+
+def matlab_to_DL_input(mat_files, window_size, number_of_channels, sampling_freq, artifact_removal = False, filter = False, augmentation=False):
     """
     Convert MATLAB data to a format suitable for deep learning.
     
@@ -96,9 +105,19 @@ def matlab_to_DL_input(mat_files, window_size, number_of_channels, sampling_freq
 
           
 if __name__ == "__main__":
-    mat_files = ["BCI_IV_2b_mat\B01T.mat", "BCI_IV_2b_mat\B01E.mat"]
-    matlab_to_DL_input(mat_files, 750, 3, sampling_freq=250, filter=True)
+    # save_path = "C:\Bath\Year 5\FYP\LightConvNet-main\dataset/bci_iv_2b/raw"
+    # for i in range (1,10):
+    #     mat_files = [ f"BCI_IV_2b_mat\B0{i}E.mat"]
+    #     X, Y = matlab_to_DL_input(mat_files, 750, 3, sampling_freq=250)
+    #     X = X[:, :, :-1]
+    #     print("size of X ", X.shape)
+    #     np.save(os.path.join(save_path, f'B0{i}E_label.npy'), Y)
+    #     np.save(os.path.join(save_path, f'B0{i}E_data.npy'), X)
+
+
+
+    
     # matlab_to_DL_input(mat_files, 750, 3, sampling_freq=250, filter=False)
 
-    # mat_files = ["BCI_IV_2a_mat\A03E.mat"]
-    # matlab_to_DL_input(mat_files, 500, 22)
+    mat_files = ["BCI_IV_2a_mat\A03E.mat"]
+    matlab_to_DL_input(mat_files, 500, 22, sampling_freq=250)

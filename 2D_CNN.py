@@ -38,48 +38,48 @@ if __name__ == '__main__':
     # Split the data into training and testing sets
     X_train, X_test, y_train, y_test = train_test_split(input_formulated_data, labels_categorical, test_size=0.4, random_state=42)
 
-    # # Define the CNN model
-    # model = Sequential([
-    #     Conv2D(25, (11,1), activation='relu', input_shape=(750, 2, 1), strides=1, padding='valid'),
-    #     Dropout(0.20),
-    #     Reshape((2, 740, 25), input_shape=(740, 2, 25)),
-
-    #     Conv2D(25, (1, 2), activation='relu', input_shape=(2, 740, 25), strides=1, padding='valid'),
-    #     MaxPooling2D((1, 3), input_shape=(1, 740,  25)),
-    #     Reshape((246, 2, 25), input_shape=(2, 246, 25)),
-
-    #     Conv2D(25, (11, 1), input_shape = (246, 2, 25), activation='relu', strides=1, padding='valid'),
-    #     Reshape((2, 236, 25), input_shape=(236, 2, 25)), 
-    #     MaxPooling2D((1, 3), strides=1),
-    #     Reshape((234, 2, 25), input_shape=(2, 234, 25)), 
-
-    #     Conv2D(25, (11, 1), activation='relu', strides=1, padding='valid'),
-    #     Dropout(0.20),
-    #     Reshape((2 , 224, 25), input_shape=(224, 2, 25)), 
-    #     MaxPooling2D((1, 3)),
-    #     Reshape((74 , 2, 25), input_shape=(2, 74, 25)), 
-
-    #     Conv2D(25, (11, 1), activation='relu', strides=1, padding='valid'),
-    #     Dropout(0.20),
-    #     MaxPooling2D((1, 2)),
-    #     Flatten(),
-    #     Dense(800, activation='relu'),
-    #     Dense(num_of_classes, activation='softmax')
-    #     ])
-    
     # Define the CNN model
     model = Sequential([
-        Conv2D(8, (11,1), activation=None, input_shape=(750, 2, 1), strides=1, padding='valid'),
-        LeakyReLU(alpha=0.05),
-        Dropout(0.30),
-        Conv2D(16, (11,1), activation=None, strides=1, padding='valid'),
-        LeakyReLU(alpha=0.1),
+        Conv2D(8, (11,1), activation='relu', input_shape=(750, 2, 1), strides=1, padding='valid'),
+        Dropout(0.20),
+        Reshape((2, 740, 25), input_shape=(740, 2, 25)),
+
+        Conv2D(16, (1, 2), activation='relu', input_shape=(2, 740, 25), strides=1, padding='valid'),
+        MaxPooling2D((1, 3), input_shape=(1, 740,  25)),
+        Reshape((246, 2, 25), input_shape=(2, 246, 25)),
+
+        Conv2D(32, (11, 1), input_shape = (246, 2, 25), activation='relu', strides=1, padding='valid'),
+        Reshape((2, 236, 25), input_shape=(236, 2, 25)), 
+        MaxPooling2D((1, 3), strides=1),
+        Reshape((234, 2, 25), input_shape=(2, 234, 25)), 
+
+        Conv2D(64, (11, 1), activation='relu', strides=1, padding='valid'),
+        Dropout(0.20),
+        Reshape((2 , 224, 25), input_shape=(224, 2, 25)), 
+        MaxPooling2D((1, 3)),
+        Reshape((74 , 2, 25), input_shape=(2, 74, 25)), 
+
+        Conv2D(128, (11, 1), activation='relu', strides=1, padding='valid'),
+        Dropout(0.20),
         MaxPooling2D((1, 2)),
         Flatten(),
-        Dense(100, activation=None),
-        LeakyReLU(alpha=0.1),
+        Dense(800, activation='relu'),
         Dense(num_of_classes, activation='softmax')
         ])
+    
+    # # Define the CNN model
+    # model = Sequential([
+    #     Conv2D(8, (11,1), activation=None, input_shape=(750, 2, 1), strides=1, padding='valid'),
+    #     LeakyReLU(alpha=0.05),
+    #     Dropout(0.30),
+    #     Conv2D(16, (11,1), activation=None, strides=1, padding='valid'),
+    #     LeakyReLU(alpha=0.1),
+    #     MaxPooling2D((1, 2)),
+    #     Flatten(),
+    #     Dense(100, activation=None),
+    #     LeakyReLU(alpha=0.1),
+    #     Dense(num_of_classes, activation='softmax')
+    #     ])
 
     # Print the model summary to see the size after each layer
     model.summary()
