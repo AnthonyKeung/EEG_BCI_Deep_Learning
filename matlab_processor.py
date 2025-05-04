@@ -29,7 +29,7 @@ def shifting(data, shift_range=(-5, 5)):
     return shift(data, shift=(0, shift_val), mode='nearest') # Assuming last dimension is time
 
 
-def matlab_to_DL_input(mat_files, window_size, number_of_channels, sampling_freq, artifact_removal = False, filter = False, augmentation=False):
+def matlab_to_DL_input(mat_files, window_size, number_of_channels, sampling_freq, filter = False):
     """
     Convert MATLAB data to a format suitable for deep learning.
     
@@ -56,24 +56,20 @@ def matlab_to_DL_input(mat_files, window_size, number_of_channels, sampling_freq
                 trial  = mat_data["data"][0][session_num][0][0][0][trial_num: trial_num + window_size, 0:number_of_channels]
 
                 if filter:
-                    # fig, axs = plt.subplots(3, 1)
-                    trial = np.transpose(trial, (1, 0))
-                    
-                    for channel in range(number_of_channels):
-                        #Plot the raw data for visualization
-                        # I want to plot a single figure that contains all channels
-                        time_axis = np.linspace(0, 750 / 250, 750)  # Create time axis in seconds    
-                        
+                    trial = np.transpose(trial, (1, 0)) # from (n_times, n_channels) to (n_channels, n_times)
 
-                        #This is the EOG data, which is the last 2 channels of the data removal of noise 
-                        X_eog = mat_data["data"][0][session_num][0][0][0][trial_num: trial_num + window_size, number_of_channels:] 
-                        X_eog = sm.add_constant(X_eog)
+                    #This is the EOG data, which is the last 2 channels of the data removal of noise 
+                    X_eog = mat_data["data"][0][session_num][0][0][0][trial_num: trial_num + window_size, number_of_channels:] 
+                    X_eog = sm.add_constant(X_eog)
+     
+                    for channel in range(number_of_channels):
                         model_c = sm.OLS(trial[channel,:], X_eog).fit()
-                        predicted_c_artifact = model_c.predict(X_eog)
+                        predicted_c_artifact = model_c.predict(X_eog)  
                         cleaned_c = trial[channel,:] - predicted_c_artifact                 
                         #print(model_c.summary()) # Optional: Print the regression summary
                         cleaned_filtered_c = butter_bandpass_filter(cleaned_c , 8, 30, sampling_freq, 5)
-
+                        trial[channel,:] = cleaned_filtered_c
+ 
                         # axs[channel].plot(time_axis, trial[channel, :], 'r') #plotting the raw data 
                         # axs[channel].plot(time_axis, cleaned_c, 'g') #plotting the raw data 
                         # axs[channel].plot(time_axis, cleaned_filtered_c, 'b') #plotting the raw data
@@ -86,7 +82,7 @@ def matlab_to_DL_input(mat_files, window_size, number_of_channels, sampling_freq
                     # plt.show()
                     # plt.tight_layout()
                     # plt.close()
-                    trial[channel,:] = cleaned_filtered_c
+                    
                     x.append(trial)
                 else:
                     x.append(trial)
@@ -120,4 +116,4 @@ if __name__ == "__main__":
     # matlab_to_DL_input(mat_files, 750, 3, sampling_freq=250, filter=False)
 
     mat_files = ["BCI_IV_2a_mat\A03E.mat"]
-    matlab_to_DL_input(mat_files, 500, 22, sampling_freq=250)
+    matlab_to_DL_input(mat_files, 500, 22, sampling_freq=250, filter=True)

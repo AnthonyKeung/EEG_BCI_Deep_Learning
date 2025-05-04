@@ -16,7 +16,8 @@ from sklearn.model_selection import GridSearchCV
 from tensorflow.keras.callbacks import EarlyStopping
 import matplotlib.pyplot as plt
 
-
+from sklearn.model_selection import RandomizedSearchCV, train_test_split
+from scipy.stats import uniform, randint
 
 class ModelEvaluation:
     def __init__(self, subjects, n_folds=5):
@@ -121,9 +122,10 @@ class ModelEvaluation:
             # Let's try no normalization for now but still need a 4D tensor         
             Y = np.array(Y).astype(int).ravel() 
             X = X[..., np.newaxis]
-            X = np.transpose(X, (0, 2, 1, 3))
+            X = np.transpose(X, (0, 2, 1, 3)) #=(3, 740, 25, 1)
 
-            Y = [label - 1 for label in Y] # 769 is the frist label 
+
+            Y = [label - 1 for label in Y]
             Y = to_categorical(Y, num_classes=num_of_classes)
 
             # Kfold cross-validation
@@ -138,99 +140,40 @@ class ModelEvaluation:
             for train_index, test_index in kf.split(X, Y):
                 print(f"Currently working on Subject {subject}, fold {fold+1}")
                 fold += 1 
-                # Defining the CNN model
-                def create_model(dropout_rate=0.4, alpha=0.1, dense_units=100):
-                    model = Sequential([
-                        Conv2D(8, (11, 1), activation=None, input_shape=(num_timepoints, num_channels, 1), strides=1, padding='valid'),
-                        LeakyReLU(alpha=0.05),
-                        Dropout(dropout_rate),
-
-                        Conv2D(16, (11, 1), activation=None, strides=1, padding='valid'),
-                        LeakyReLU(alpha=alpha),
-                        Dropout(dropout_rate),
-                        MaxPooling2D((1, 2)),
-
-                        Flatten(),
-                        Dense(dense_units, activation=None),
-                        LeakyReLU(alpha=alpha),
-                        Dense(num_of_classes, activation='softmax')
-                    ])
-                    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-                    return model
-
-                # Wrap the model for GridSearchCV
-                model = KerasClassifier(build_fn=create_model, verbose=0)
-
-                # Define the hyperparameter grid
-                param_grid = {
-                    'dropout_rate': [0.3, 0.4, 0.5],
-                    'alpha': [0.05, 0.1, 0.2],
-                    'dense_units': [50, 100, 150],
-                    'batch_size': [16, 32],
-                    'epochs': [10, 15]
-                }
-
-                # Perform grid search
-                grid = GridSearchCV(estimator=model, param_grid=param_grid, cv=3)
-                grid_result = grid.fit(X_train, Y_train)
-
-                # Print the best parameters and accuracy
-                print(f"Best Parameters: {grid_result.best_params_}")
-                print(f"Best Accuracy: {grid_result.best_score_}")
-
-                # Use the best model
-                best_model = grid_result.best_estimator_
-                test_loss, test_accuracy = best_model.model.evaluate(X_test, Y_test)
-                print(f"Test Accuracy: {test_accuracy}")
-
-                # # # Define the CNN model
-                # model = Sequential([
-                #     Conv2D(25, (11,1), activation=None, input_shape=(num_timepoints, num_channels, 1), strides=1, padding='valid'),
-                #     LeakyReLU(alpha=0.05),
-                #     Dropout(0.20),
-                #     Reshape((3, 740, 25)),
-
-                #     Conv2D(25, (1, 2), activation=None, strides=1, padding='valid'),
-                #     LeakyReLU(alpha=0.05),
-                #     MaxPooling2D((1, 3)),
-                #     Reshape((246, 3, 25)),
-
-                #     Conv2D(25, (11, 1), activation=None, strides=1, padding='valid'),
-                #     LeakyReLU(alpha=0.05),
-                #     Reshape((3, 236, 25)), 
-                #     MaxPooling2D((1, 3), strides=1),
-                #     Reshape((234, 3, 25)), 
-
-                #     Conv2D(25, (11, 1), activation=None, strides=1, padding='valid'),
-                #     LeakyReLU(alpha=0.05),
-                #     Dropout(0.20),
-                #     Reshape((3 , 224, 25)), 
-                #     MaxPooling2D((1, 3)),
-                #     Reshape((74 , 3, 25)), 
-
-                #     Conv2D(25, (11, 1), activation=None, strides=1, padding='valid'),
-                #     LeakyReLU(alpha=0.05),
-                #     Dropout(0.20),
-                #     MaxPooling2D((1, 3)),
-                #     Flatten(),
-                #     Dense(800, activation='relu'),
-                #     Dense(num_of_classes, activation='softmax')
-                #     ])
-    
-
-
-
+                
                 X_train, X_test = X[train_index], X[test_index]
                 Y_train, Y_test = Y[train_index], Y[test_index]
+
+                # Define the CNN model
+                model = Sequential([
+                    Conv2D(8, (11,1), activation=None, input_shape=(750, 2, 1), strides=1, padding='valid'),
+                    LeakyReLU(alpha=0.05),
+                    Dropout(0.30),
+                    Conv2D(16, (11,1), activation=None, strides=1, padding='valid'),
+                    LeakyReLU(alpha=0.1),
+                    MaxPooling2D((1, 2)),
+                    Flatten(),
+                    Dense(100, activation=None),
+                    LeakyReLU(alpha=0.1),
+                    Dense(num_of_classes, activation='softmax')
+                    ])
+
 
     
                 # Compile the model
                 model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
                 # Train the model
-                history = model.fit(X_train, Y_train, epochs=15, batch_size=32, validation_data=(X_test, Y_test))
+                # Split training data further into training and validation sets
+                val_split = 0.2  # Use 20% of training data for validation
+                val_size = int(len(X_train) * val_split)
+                X_val, Y_val = X_train[:val_size], Y_train[:val_size]
+                X_train, Y_train = X_train[val_size:], Y_train[val_size:]
 
-                # Evaluate the model
+                # Train the model
+                history = model.fit(X_train, Y_train, epochs=15, batch_size=32, validation_data=(X_val, Y_val))
+
+                # Evaluate the model on the test data
                 test_loss, test_accuracy = model.evaluate(X_test, Y_test)
 
                 # Plot training and validation loss
@@ -323,8 +266,7 @@ class ModelEvaluation:
                     Dense(num_of_classes, activation='softmax')
                 ])
 
-                # Define early stopping
-                early_stopping = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
+                EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
 
                 # Compile the model
                 model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
@@ -358,16 +300,16 @@ class ModelEvaluation:
                 plt.legend()
                 plt.show()
 
-                # # Generate confusion matrix
-                # Y_pred_classes = np.argmax(model.predict(X_test), axis=1)
-                # Y_test_classes = np.argmax(Y_test, axis=1)
-                # cm = confusion_matrix(Y_test_classes, Y_pred_classes)
+                # Generate confusion matrix
+                Y_pred_classes = np.argmax(model.predict(X_test), axis=1)
+                Y_test_classes = np.argmax(Y_test, axis=1)
+                cm = confusion_matrix(Y_test_classes, Y_pred_classes)
 
-                # # Plot confusion matrix
-                # disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=["LH", "RH"])
-                # disp.plot(cmap=plt.cm.Blues)
-                # plt.title(f"Confusion Matrix for Subject {subject}, Fold {fold}")
-                # plt.show()
+                # Plot confusion matrix
+                disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=["LH", "RH", "Foot", "Tongue"])
+                disp.plot(cmap=plt.cm.Blues)
+                plt.title(f"Confusion Matrix for Subject {subject}, Fold {fold}")
+                plt.show()
 
             self.results.append({
                 "subject": subject,
@@ -387,7 +329,7 @@ class ModelEvaluation:
                                         window_size=num_timepoints,
                                         number_of_channels=num_channels,
                                         sampling_freq=250,
-                                        filter=False)
+                                        filter=True)
 
             elif dataset == "2b":
                 num_timepoints = 750
@@ -397,7 +339,7 @@ class ModelEvaluation:
                                         window_size=num_timepoints,
                                         number_of_channels=num_channels,
                                         sampling_freq=250,
-                                        filter=True)
+                                        filter=False)
 
             else:
                 raise ValueError("Invalid dataset. Choose '2a' or '2b'.")
@@ -407,44 +349,67 @@ class ModelEvaluation:
             X = (X - np.mean(X, axis=0)) / np.std(X, axis=0)
             Y = np.array(Y).astype(int).ravel()
 
-            # KFold cross-validation
-            kf = KFold(n_splits=self.n_folds, shuffle=True, random_state=42)
-            accuracies = []
+            # Split data into training and testing sets
+            X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42, stratify=Y)
 
-            fold = 0
-            for train_index, test_index in kf.split(X, Y):
-                print(f"Currently working on Subject {subject}, fold {fold + 1}")
-                fold += 1
+            # Define the DBN pipeline
+            rbm1 = BernoulliRBM(random_state=42)
+            rbm2 = BernoulliRBM(random_state=42)
+            logistic = LogisticRegression(max_iter=1000, random_state=42, solver='lbfgs')
 
-                X_train, X_test = X[train_index], X[test_index]
-                Y_train, Y_test = Y[train_index], Y[test_index]
+            dbn = Pipeline(steps=[
+                ('rbm1', rbm1),
+                ('rbm2', rbm2),
+                ('logistic', logistic)
+            ])
 
-                rbm1 = BernoulliRBM(n_components=256, learning_rate=0.01, n_iter=10, random_state=42)
-                rbm2 = BernoulliRBM(n_components=128, learning_rate=0.01, n_iter=10, random_state=42)
-                logistic = LogisticRegression(max_iter=1000, random_state=42)
+            # Define the hyperparameter search space
+            param_distributions = {
+                'rbm1__n_components': randint(100, 300),  # Number of hidden units in RBM1
+                'rbm1__learning_rate': uniform(0.01, 0.1),  # Learning rate for RBM1
+                'rbm2__n_components': randint(50, 200),  # Number of hidden units in RBM2
+                'rbm2__learning_rate': uniform(0.01, 0.1),  # Learning rate for RBM2
+                'logistic__C': uniform(0.1, 10),  # Regularization strength for Logistic Regression
+            }
 
-                # Create a pipeline
-                dbn = Pipeline(steps=[
-                    ('rbm1', rbm1),
-                    ('rbm2', rbm2),
-                    ('logistic', logistic)
-                ])
+            # Perform random search on the training data
+            random_search = RandomizedSearchCV(
+                estimator=dbn,
+                param_distributions=param_distributions,
+                n_iter=20,  # Number of random combinations to try
+                scoring='accuracy',
+                cv=2,  
+                random_state=42,
+                verbose=2,
+                n_jobs=-1  # Use all available CPU cores
+            )
 
-                # Train the DBN
-                dbn.fit(X_train, Y_train)
+            # Fit random search on the training data
+            random_search.fit(X_train, Y_train)
 
-                # Evaluate the DBN
-                Y_pred = dbn.predict(X_test)
-                accuracy = accuracy_score(Y_test, Y_pred)
-                print(accuracy)
-                accuracies.append(accuracy)
+            # Best parameters and score from training data
+            print(f"Best Parameters for Subject {subject}: {random_search.best_params_}")
+            print(f"Best Cross-Validation Accuracy for Subject {subject}: {random_search.best_score_}")
 
+            # Evaluate the best model on the unseen test data
+            best_model = random_search.best_estimator_
+            Y_pred = best_model.predict(X_test)
+            test_accuracy = accuracy_score(Y_test, Y_pred)
+            test_f1 = f1_score(Y_test, Y_pred, average='weighted')
+
+            print(f"Test Accuracy for Subject {subject}: {test_accuracy}")
+            print(f"Test F1-Score for Subject {subject}: {test_f1}")
+
+            # Store results
             self.results.append({
                 "subject": subject,
-                "accuracy": np.mean(accuracies)
+                "best_params": random_search.best_params_,
+                "cross_val_accuracy": random_search.best_score_,
+                "test_accuracy": test_accuracy,
+                "test_f1_score": test_f1
             })
 
-        print("Results: ", self.results)
+        print("Final Results: ", self.results)
 
     def CNN_LSTM_evaluation_of_dataset(self, dataset):
         for subject in range(1, self.subjects+1):
@@ -558,5 +523,5 @@ class ModelEvaluation:
         print("Results: ", self.results)
   
 if __name__ == "__main__":
-    cspEvaluation = ModelEvaluation(1, n_folds=5) ## one subject for now beacuase I'm testing 
-    cspEvaluation.LSTM_evaluation_of_dataset(dataset="2a")
+    cspEvaluation = ModelEvaluation(9, n_folds=5) ## one subject for now beacuase I'm testing 
+    cspEvaluation.DBN_evaluation_of_dataset(dataset="2a")
