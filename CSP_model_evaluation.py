@@ -323,7 +323,7 @@ class ModelEvaluation:
         for subject in range(1, self.subjects + 1):
             if dataset == "2a":
                 num_channels = 22
-                num_timepoints = 500
+                num_timepoints = 1000
                 num_of_classes = 4
                 X, Y = matlab_to_DL_input([f"BCI_IV_2a_mat/A0{subject}E.mat", f"BCI_IV_2a_mat/A0{subject}T.mat"],
                                         window_size=num_timepoints,
@@ -332,7 +332,7 @@ class ModelEvaluation:
                                         filter=True)
 
             elif dataset == "2b":
-                num_timepoints = 750
+                num_timepoints = 1000
                 num_channels = 3
                 num_of_classes = 2
                 X, Y = matlab_to_DL_input([f"BCI_IV_2b_mat/B0{subject}E.mat", f"BCI_IV_2b_mat/B0{subject}T.mat"],
@@ -378,7 +378,7 @@ class ModelEvaluation:
                 param_distributions=param_distributions,
                 n_iter=20,  # Number of random combinations to try
                 scoring='accuracy',
-                cv=2,  
+                cv=5,  
                 random_state=42,
                 verbose=2,
                 n_jobs=-1  # Use all available CPU cores
@@ -416,7 +416,7 @@ class ModelEvaluation:
 
             if dataset == "2a":
                 num_channels = 22
-                num_timepoints = 500
+                num_timepoints = 1000
                 num_of_classes = 4
                 X, Y = matlab_to_DL_input([f"BCI_IV_2a_mat/A0{subject}E.mat", f"BCI_IV_2a_mat/A0{subject}T.mat"],
                                           window_size=num_timepoints,
@@ -432,12 +432,12 @@ class ModelEvaluation:
                                           window_size=num_timepoints,
                                           number_of_channels=num_channels,
                                           sampling_freq=250,
-                                          filter=True )
+                                          filter=False,
+                                          normalise=True)
 
             else:
                 raise ValueError("Invalid dataset. Choose '2a' or '2b'.")
-
-            # Let's try no normalization for now but still need a 4D tensor         
+    
             Y = np.array(Y).astype(int).ravel() 
             X = X[..., np.newaxis]
             X = np.transpose(X, (0, 2, 1, 3))
@@ -448,19 +448,18 @@ class ModelEvaluation:
             # Kfold cross-validation
             kf = KFold(n_splits=self.n_folds, shuffle=True, random_state=42)
             accuracies = []
-            
             precision_scores = []
             recalls = []
             f1s = []
-
             fold = 0
 
+            print(X.shape)
             for train_index, test_index in kf.split(X, Y):
                 print(f"Currently working on Subject {subject}, fold {fold+1}")
                 fold += 1 
                 # Defining the CNN model
                 model = Sequential([
-                    Conv2D(8, (11, 1), activation=None, input_shape=(num_timepoints, num_channels, 1), strides=1, padding='valid'),
+                    Conv2D(8, (11, num_channels-1), activation=None, input_shape=(num_timepoints, num_channels, 1), strides=1, padding='valid'),
                     LeakyReLU(alpha=0.05),
                     Dropout(0.30),
 
@@ -489,39 +488,51 @@ class ModelEvaluation:
 
                 # Evaluate the model
                 test_loss, test_accuracy = model.evaluate(X_test, Y_test)
+                Y_pred = model.predict(X_test)
+                Y_pred_classes = np.argmax(Y_pred, axis=1)
+                Y_test_classes = np.argmax(Y_test, axis=1)
 
-                # Plot training and validation loss
-                plt.figure(figsize=(12, 6))
-                plt.plot(history.history['loss'], label='Training Loss')
-                plt.plot(history.history['val_loss'], label='Validation Loss')
-                plt.title('Training and Validation Loss')
-                plt.xlabel('Epochs')
-                plt.ylabel('Loss')
-                plt.legend()
-                plt.show()
+                precision = precision_score(Y_test_classes, Y_pred_classes, average='weighted')
+                f1 = f1_score(Y_test_classes, Y_pred_classes, average='weighted')
+                recall = recall_score(Y_test_classes, Y_pred_classes, average='weighted')
 
-                # Plot training and validation accuracy
-                plt.figure(figsize=(12, 6))
-                plt.plot(history.history['accuracy'], label='Training Accuracy')
-                plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
-                plt.title('Training and Validation Accuracy')
-                plt.xlabel('Epochs')
-                plt.ylabel('Accuracy')
-                plt.legend()
-                plt.show()
-
+                precision_scores.append(precision)
+                recalls.append(recall)
+                f1s.append(f1)
                 accuracies.append(test_accuracy)
+
+                # # Plot training and validation loss
+                # plt.figure(figsize=(12, 6))
+                # plt.plot(history.history['loss'], label='Training Loss')
+                # plt.plot(history.history['val_loss'], label='Validation Loss')
+                # plt.title('Training and Validation Loss')
+                # plt.xlabel('Epochs')
+                # plt.ylabel('Loss')
+                # plt.legend()
+                # plt.show()
+
+                # # Plot training and validation accuracy
+                # plt.figure(figsize=(12, 6))
+                # plt.plot(history.history['accuracy'], label='Training Accuracy')
+                # plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
+                # plt.title('Training and Validation Accuracy')
+                # plt.xlabel('Epochs')
+                # plt.ylabel('Accuracy')
+                # plt.legend()
+                # plt.show()
+
+                
 
             self.results.append({
                 "subject": subject,
                 "accuracy": np.mean(accuracies),
-                # "precision": np.mean(precision_scores) if precision_scores else None,
-                # "recall": np.mean(recalls) if recalls else None,
-                # "f1s": np.mean(f1s) if f1s else None
+                "precision": np.mean(precision_scores),
+                "recall": np.mean(recalls),
+                "f1s": np.mean(f1s)
             })
 
         print("Results: ", self.results)
   
 if __name__ == "__main__":
-    cspEvaluation = ModelEvaluation(9, n_folds=5) ## one subject for now beacuase I'm testing 
-    cspEvaluation.DBN_evaluation_of_dataset(dataset="2a")
+    cspEvaluation = ModelEvaluation(1, n_folds=5) ## one subject for now beacuase I'm testing 
+    cspEvaluation.CNN_LSTM_evaluation_of_dataset(dataset="2a")

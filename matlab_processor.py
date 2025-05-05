@@ -29,7 +29,7 @@ def shifting(data, shift_range=(-5, 5)):
     return shift(data, shift=(0, shift_val), mode='nearest') # Assuming last dimension is time
 
 
-def matlab_to_DL_input(mat_files, window_size, number_of_channels, sampling_freq, filter = False):
+def matlab_to_DL_input(mat_files, window_size, number_of_channels, sampling_freq, filter = False, normalise = True):
     """
     Convert MATLAB data to a format suitable for deep learning.
     
@@ -53,8 +53,9 @@ def matlab_to_DL_input(mat_files, window_size, number_of_channels, sampling_freq
             y.extend(labels)
             for y_num, trial_num in enumerate(mat_data["data"][0][session_num][0][0][1]):
                 trial_num  = int(trial_num[0])
-                trial  = mat_data["data"][0][session_num][0][0][0][trial_num: trial_num + window_size, 0:number_of_channels]
-
+                trial  = mat_data["data"][0][session_num][0][0][0][trial_num: trial_num + window_size, 0:number_of_channels] 
+                if normalise == True: 
+                    trial = (trial - np.mean(trial, axis=(0, 1), keepdims=True)) / np.std(trial, axis=(0, 1), keepdims=True)  #(n_timepoints, n_channels )
                 if filter:
                     trial = np.transpose(trial, (1, 0)) # from (n_times, n_channels) to (n_channels, n_times)
 
